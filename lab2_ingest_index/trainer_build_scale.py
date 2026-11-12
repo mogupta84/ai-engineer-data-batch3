@@ -63,7 +63,7 @@ def build_postgres(bench):
     from pgvector.psycopg import register_vector
     password = setting("PG_STUDENT_PASSWORD")                           # checked first, before any slow step
     db = psycopg.connect(setting("PG_CONNECTION"), autocommit=True)
-    db.execute("SET search_path = pg_catalog, public")                  # never pick up an object a student made
+    db.execute("SET search_path = public")       # new tables go in public; system objects still resolve first (pg_catalog is implicit)
     database = db.execute("SELECT current_database()").fetchone()[0]
     db.execute("CREATE EXTENSION IF NOT EXISTS vector")
     register_vector(db)

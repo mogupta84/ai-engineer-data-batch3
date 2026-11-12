@@ -1,7 +1,7 @@
-"""Day 3, code part 1: five ways to search the same index, each scored on the 20 judged questions with nDCG@10.
+"""Day 3, code part 1: six ways to search the same index, each scored on the 20 judged questions with nDCG@10.
 
     python lab3_rag_rerank/l3_search.py              stages 1 to 3: meaning, keyword, both together (hybrid)
-    python lab3_rag_rerank/l3_search.py --rerank     also 4 and 5: the semantic reranker, then current documents only
+    python lab3_rag_rerank/l3_search.py --rerank     also 4 to 6: the reranker, current documents only, then 50 candidates
     python lab3_rag_rerank/l3_search.py --show R01   the top 3 pieces of one question in every stage
 
 In the portal you saw one question at a time. Here every stage answers the same 20 questions, and nDCG@10 (from 0
@@ -9,7 +9,7 @@ to 1; 1 means the best pieces came first) shows the lift each stage adds. The in
 freshcart-chunks: 500-character pieces, each labelled current or not.
 
 The semantic reranker is free for 1,000 searches a month per search service, shared by the whole class.
---rerank uses 40. Run it once, not in a loop.
+--rerank uses 60. Run it once, not in a loop.
 """
 import pathlib
 import sys

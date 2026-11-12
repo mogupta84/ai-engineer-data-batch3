@@ -3,12 +3,13 @@
     python lab4_rag_api/l4_score.py                    20 answerable and 5 unanswerable questions, scored by rules
     python lab4_rag_api/l4_score.py --fake             add a made-up citation to every third answer: is it caught?
     python lab4_rag_api/l4_score.py --prompt v2        the stricter prompt (see PROMPT_V2 below)
-    python lab4_rag_api/l4_score.py --evaluate         also Groundedness and Relevance, judged by gpt-4.1-mini
+    python lab4_rag_api/l4_score.py --evaluate         also Groundedness, Relevance and a right-answer judge (gpt-4.1-mini)
     python lab4_rag_api/l4_score.py --evaluate --upload  the same, and the run appears in Foundry, Evaluations
 
 Rules check facts you can name ("three"). Evaluators judge what rules cannot: is every sentence supported by the
 pieces (groundedness), does it answer the question (relevance). Both scored 1 to 5.
-Cost: about 25 short answers, plus about 50 judge calls with --evaluate: well under $0.10.
+Cost: about 25 short answers, plus about 70 judge calls with --evaluate: well under $0.10.
+The judge is gpt-4.1-mini, the same model that writes the answers: a model grading its own work.
 """
 import contextlib     # hide the evaluators' progress lines
 import io
@@ -21,7 +22,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "lab3_rag_rerank"))
-from azure_common import OUT, golden, models, setting, sign_in
+from azure_common import OUT, chat, golden, models, setting, sign_in
 from rag import PROMPT, REFUSAL, answer, verify
 
 PROMPT_V2 = PROMPT + """
@@ -74,15 +75,45 @@ def run(client, prompt):
     return rows
 
 
+JUDGE_PROMPT = """You check one answer from a support assistant against what a correct answer must do.
+Question: {query}
+What a correct answer must do: {expected}
+The assistant's answer: {response}
+Reply with PASS or FAIL on the first line, then one sentence saying why."""
+
+
+class RightAnswer:
+    """A custom evaluator, the same idea as Lab 10's right-decision judge: it compares each answer with what the answer
+    key says it must do, which groundedness and relevance never look at. gpt-4.1-mini is the judge."""
+
+    def __init__(self):
+        self.client = models()
+
+    def __call__(self, *, query, response, expected):
+        verdict, _usage = chat(self.client, [{"role": "user", "content": JUDGE_PROMPT.format(
+            query=query, expected=expected, response=response)}], max_tokens=80)
+        word = re.search(r"\b(PASS|FAIL)\b", verdict.upper())          # tolerate **PASS** or "Verdict: FAIL"
+        return {"right_answer": None if word is None else int(word.group(1) == "PASS"), "right_answer_reason": verdict}
+
+
+def expected_for(row):
+    """What the answer key says a correct answer must do, in words the judge can check."""
+    if row["answerable"]:
+        return "give this answer from FreshCart's documents, in any words: " + row["expected"]
+    return ("say that FreshCart's documents do not answer this question. Giving a policy, a number or advice that "
+            "the documents do not state for this exact case is a FAIL, even if it cites a document.")
+
+
 def evaluate(rows, name):
-    """Foundry's Groundedness and Relevance evaluators on every answer that was not refused."""
+    """Foundry's Groundedness and Relevance evaluators, and the right-answer judge, on every answer not refused."""
     from azure.ai.evaluation import AzureOpenAIModelConfiguration, GroundednessEvaluator, RelevanceEvaluator, evaluate
     data = OUT / f"{name}.jsonl"
     with data.open("w", encoding="utf-8") as f:
         for r in rows:
             if not r["refused"]:
                 context = "\n\n".join(f"[{p['id']}] {p['text']}" for p in r["retrieved"])
-                f.write(json.dumps({"query": r["question"], "response": r["answer"], "context": context}) + "\n")
+                f.write(json.dumps({"query": r["question"], "response": r["answer"], "context": context,
+                                    "expected": expected_for(r)}) + "\n")
     judge = AzureOpenAIModelConfiguration(azure_endpoint=setting("FOUNDRY_OPENAI_ENDPOINT").split("/openai")[0],
                                           azure_deployment=setting("CHAT_MODEL"), api_version="2024-10-21")
     upload = {"azure_ai_project": setting("FOUNDRY_PROJECT_ENDPOINT")} if "--upload" in sys.argv else {}
@@ -91,15 +122,23 @@ def evaluate(rows, name):
     with contextlib.redirect_stdout(io.StringIO()):
         result = evaluate(data=str(data), evaluation_name=name, output_path=str(OUT / f"{name}_result.json"),
                           evaluators={"groundedness": GroundednessEvaluator(judge, credential=sign_in()),
-                                      "relevance": RelevanceEvaluator(judge, credential=sign_in())}, **upload)
+                                      "relevance": RelevanceEvaluator(judge, credential=sign_in()),
+                                      "right": RightAnswer()}, **upload)
     logging.disable(logging.NOTSET)
     m = result["metrics"]
     print(f"\nFoundry evaluators on {sum(1 for _ in data.open())} answers, 1 to 5: "
           f"groundedness {m.get('groundedness.groundedness', float('nan')):.2f}, "
           f"relevance {m.get('relevance.relevance', float('nan')):.2f}")
-    low = [row for row in result["rows"] if (row.get("outputs.groundedness.groundedness") or 5) < 4]
-    for row in low:
-        print(f"  low groundedness: {row['inputs.query'][:70]!r}")
+    passed = [row.get("outputs.right.right_answer") for row in result["rows"]]
+    unclear = sum(p not in (0, 1) for p in passed)
+    print(f"Right-answer judge: {sum(p == 1 for p in passed)} of {len(passed)} answers not refused pass"
+          + (f", {unclear} unclear" if unclear else ""))
+    for row in result["rows"]:
+        if (row.get("outputs.groundedness.groundedness") or 5) < 4:
+            print(f"  low groundedness: {row['inputs.query'][:70]!r}")
+        if row.get("outputs.right.right_answer") == 0:
+            reason = (row.get("outputs.right.right_answer_reason") or "").strip().splitlines() or [""]
+            print(f"  judge FAIL: {row['inputs.query'][:60]!r}: {reason[-1][:110]}")
     if result.get("studio_url"):
         print(f"Open the run in Foundry: {result['studio_url']}")
 

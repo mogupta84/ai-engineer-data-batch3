@@ -94,10 +94,14 @@ def main():
                           f"ORDER BY embedding <=> %s LIMIT 10", [q]).fetchone()[0]
         return plan[0]["Execution Time"]
 
+    service_ms = []                                              # AI Search's own time for each search
+
     def ai(q, exhaustive=False, label=None):
+        # Every AI Search reply carries an elapsed-time header: the search service's own milliseconds, no network.
         found = search.search(search_text=None, top=10, select=["id"], filter=f"label eq {label}" if label is not None else None,
                               vector_queries=[VectorizedQuery(vector=q.tolist(), k_nearest_neighbors=10, fields="vector",
-                                                              exhaustive=exhaustive)])
+                                                              exhaustive=exhaustive)],
+                              raw_response_hook=lambda r: service_ms.append(float(r.http_response.headers.get("elapsed-time", "nan"))))
         return [int(p["id"]) for p in found]
 
     ai(Q[0])                                                    # warm up the connection
@@ -121,8 +125,11 @@ def main():
         db.execute("SET enable_indexscan = on")
         db.execute("SET enable_seqscan = off")
     for name, exhaustive in (("AI Search, HNSW (ef 100)", False), ("AI Search, exhaustive (exact)", True)):
+        service_ms.clear()
         got, p50, p95 = timed(lambda q: ai(q, exhaustive), Q)
-        print(f"{name:32} {recall(truth, got):9.3f} {p50:10.1f} {p95:13.1f} {'not shown':>20}")
+        own = [m for m in service_ms if m == m]                  # m == m drops a missing header (nan)
+        shown = f"{statistics.median(own):.0f}" if own else "not sent"
+        print(f"{name:32} {recall(truth, got):9.3f} {p50:10.1f} {p95:13.1f} {shown:>20}")
 
     print("\n2. A filter: only rows with one label (a tenth of the data), 30 questions")
     labels = [int(bench.labels[int(t[0])]) for t in truth[:30]]       # the label of each question's best match
@@ -140,7 +147,8 @@ def main():
     if db is not None:
         db.execute("SET hnsw.iterative_scan = off")
     print("\nMedian ms is what your laptop waits: mostly the network trip, which varies by tens of ms from run to run.")
-    print("Inside the store is the search itself; compare the pgvector settings on that column.")
+    print("Inside the store is the search itself, as each store reports it: PostgreSQL's execution time, and the")
+    print("elapsed-time AI Search sends with each reply (whole milliseconds, and it includes reading the request).")
     print("A filter applied after a graph walk keeps only the matches among the few candidates it found.")
 
 
