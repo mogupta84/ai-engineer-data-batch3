@@ -1,0 +1,14 @@
+Day 3 lab: texts to copy. Copy one block at a time, from the line after its heading to the line before the next.
+
+==== P1. The question for Search explorer ====
+the food arrived cold, can the customer get money back
+
+==== P2. The filter line (put your own container name in place of itc-ai-1-docs) ====
+"filter": "blob_url ne 'https://freshcartteamdocs19158.blob.core.windows.net/itc-ai-1-docs/refund_policy_v2_2022.pdf'",
+
+==== P3. The agent's instructions ====
+You answer FreshCart support staff from FreshCart's internal documents only. Always name the file you used. If the documents do not answer the question, say so; never guess.
+
+==== P3. The two test questions ====
+How many refund claims can a customer make in thirty days?
+What is FreshCart's refund policy for grocery orders in Singapore?

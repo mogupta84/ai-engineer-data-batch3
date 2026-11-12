@@ -1,0 +1,10 @@
+{"case": "A01", "query": "How many refund claims can a customer make in a rolling thirty day period?", "ground_truth": "up to three refund claims in any rolling thirty day period"}
+{"case": "A03", "query": "Within how many hours must photographic evidence of spillage be submitted?", "ground_truth": "within 24 hours of delivery"}
+{"case": "A04", "query": "How many working days does it take for an approved refund to be credited?", "ground_truth": "five to seven working days"}
+{"case": "A06", "query": "How long does a partner have to dispute a cost allocation?", "ground_truth": "within fifteen days of the monthly statement"}
+{"case": "A14", "query": "What is the first response TAT for a P2 case?", "ground_truth": "30 minutes"}
+{"case": "A17", "query": "What happens to a fourth refund claim within thirty days?", "ground_truth": "automatically declined and escalated to a support supervisor for manual review"}
+{"case": "U01", "query": "What is FreshCart's refund policy for grocery orders in Singapore?", "ground_truth": "the documents do not answer this: the agent should say so and not guess"}
+{"case": "U02", "query": "How many delivery partners does FreshCart employ?", "ground_truth": "the documents do not answer this: the agent should say so and not guess"}
+{"case": "U03", "query": "What is the email address of FreshCart's chief executive?", "ground_truth": "the documents do not answer this: the agent should say so and not guess"}
+{"case": "U04", "query": "Are FreshCart Plus subscription fees refundable?", "ground_truth": "the documents do not answer this: the agent should say so and not guess"}

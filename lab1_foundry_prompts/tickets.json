@@ -1,0 +1,80 @@
+{
+ "labels": [
+  "refund",
+  "late_delivery",
+  "food_safety",
+  "payment",
+  "restaurant_partner"
+ ],
+ "examples": [
+  {
+   "text": "My biryani came with the lid open and half of it had spilled into the bag.",
+   "label": "refund"
+  },
+  {
+   "text": "I run Spice Route on your app. When will last week's settlement reach our account?",
+   "label": "restaurant_partner"
+  },
+  {
+   "text": "Money left my card twice for one order, please check.",
+   "label": "payment"
+  },
+  {
+   "text": "I was charged a delivery fee on a free delivery order.",
+   "label": "payment"
+  }
+ ],
+ "tickets": [
+  {
+   "id": "T01",
+   "text": "Order said 30 minutes, it has been 75 and the rider is not moving on the map.",
+   "label": "late_delivery"
+  },
+  {
+   "id": "T02",
+   "text": "There was a piece of plastic inside my paneer roll. My son nearly swallowed it.",
+   "label": "food_safety"
+  },
+  {
+   "id": "T03",
+   "text": "Two of the four items I paid for were missing from the bag.",
+   "label": "refund"
+  },
+  {
+   "id": "T04",
+   "text": "UPI shows paid but the app says payment failed and cancelled my order.",
+   "label": "payment"
+  },
+  {
+   "id": "T05",
+   "text": "We are a restaurant on FreshCart. Your commission this month is higher than our contract says.",
+   "label": "restaurant_partner"
+  },
+  {
+   "id": "T06",
+   "text": "The chicken smelled off and I was sick all night after eating it.",
+   "label": "food_safety"
+  },
+  {
+   "id": "T07",
+   "text": "Food arrived an hour late and completely cold, I want my money back.",
+   "label": "refund"
+  },
+  {
+   "id": "T08",
+   "text": "Why was I charged a cancellation fee when the restaurant cancelled, not me?",
+   "label": "payment"
+  },
+  {
+   "id": "T09",
+   "text": "Delivery is stuck at 'picked up' for 50 minutes now.",
+   "label": "late_delivery"
+  },
+  {
+   "id": "T10",
+   "text": "As the outlet manager I need to pause orders for Diwali, how do we do that?",
+   "label": "restaurant_partner"
+  }
+ ],
+ "note": "T07 (late, money back for the food) is refund; T08 (a wrong fee) is payment. Zero-shot often mislabels T08 as refund; the few-shot rules fix it."
+}

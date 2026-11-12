@@ -1,0 +1,12 @@
+# made on each machine
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+out/
+data/cache/
+data/logs/
+data/pipeline/
+lab.env
+.env
+.DS_Store
+answers_*.json
