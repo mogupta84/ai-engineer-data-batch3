@@ -56,10 +56,10 @@ def setting(name, required=True):
 
 
 def student():
-    """Your account name with dashes, as in the portal steps: itc_ai_1 becomes itc-ai-1. It names your own index."""
+    """Your account name in lower case, as in the portal steps: aedUser1 becomes aeduser1. It names your own index."""
     name = re.sub(r"[^a-z0-9-]", "", setting("STUDENT").lower().replace("_", "-"))[:30].strip("-")
     if not name:
-        sys.exit("STUDENT in .env must be your account name, for example STUDENT=itc-ai-1")
+        sys.exit("STUDENT in .env must be your account name, for example STUDENT=aeduser1")
     return name
 
 
