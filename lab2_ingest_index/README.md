@@ -13,4 +13,5 @@ trainer_build_shared_index.py  TRAINER ONLY, before class: builds the shared ind
 
 ```
 
-The 7 FreshCart files are in `data/raw/`. The notebooks fetch the lab code in `src/` from this repository.
+The 7 FreshCart files are in `data/raw/`; notebook 1 downloads them from this repository. Notebook 2 also downloads its
+helper code, `src/store_bench.py` and `scale_set.py`.
