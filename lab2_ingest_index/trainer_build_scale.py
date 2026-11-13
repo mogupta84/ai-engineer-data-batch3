@@ -1,12 +1,13 @@
 """Day 2, TRAINER ONLY, before class: load the benchmark vectors into both stores, once, for the whole class.
 
-    python lab2_ingest_index/trainer_build_scale.py --search      Azure AI Search index freshcart-scale-100k
+    python lab2_ingest_index/trainer_build_scale.py --search      Azure AI Search index freshcart-scale-100k (freshcart-bench-ci)
     python lab2_ingest_index/trainer_build_scale.py --postgres    pgvector table scale_100k on the class PostgreSQL server
     add --1536 to either for the 20,000 x 1,536 set (index freshcart-scale-1536, table scale_1536)
 
---search needs SEARCH_ENDPOINT and SEARCH_ADMIN_KEY in .env (run it once per class search service). --postgres needs
-PG_CONNECTION as the trainer (the container's admin login) and PG_STUDENT_PASSWORD, a new password for the students' login. Students only read both, from notebook 2 (or l2_scale.py), so nobody loads 100,000 rows into a shared server in class.
-No model calls: the vectors are made on this laptop, so the only cost is the running container.
+--search needs SEARCH_ENDPOINT and SEARCH_ADMIN_KEY in .env for the benchmark search service, freshcart-bench-ci. --postgres
+needs PG_CONNECTION as the trainer (the server's admin login, freshcart-pg-b3ci) and PG_STUDENT_PASSWORD, a new password for
+the students' login. Students only read both, from notebook 2, so nobody loads 100,000 rows into a shared server in class.
+No model calls: the vectors are made on this laptop, so the only cost is the stores running.
 """
 import pathlib
 import sys
@@ -84,18 +85,19 @@ def build_postgres(bench):
     db.execute(f"CREATE INDEX ON {TABLE} USING hnsw (embedding vector_cosine_ops) WITH (m = 10, ef_construction = 100)")
     db.execute(f"ANALYZE {TABLE}")
     print(f"HNSW index built in {time.time() - start:.0f} s")
-    # Students log in as class_student, never as the trainer: they may read this table and make tables of their own
-    # (l2_benchmark.py), but only an owner can drop, empty or re-index a table, so the scale test cannot be broken.
+    # Students log in as class_student, never as the trainer: they may read this table, but only an owner can drop,
+    # empty or re-index a table, so the benchmark cannot be broken.
     from psycopg import sql
     exists = db.execute("SELECT 1 FROM pg_roles WHERE rolname = 'class_student'").fetchone()
     db.execute(sql.SQL("{} ROLE class_student WITH LOGIN PASSWORD {}").format(
         sql.SQL("ALTER" if exists else "CREATE"), sql.Literal(password)))
     db.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO class_student").format(sql.Identifier(database)))
-    db.execute("GRANT USAGE, CREATE ON SCHEMA public TO class_student")
+    db.execute("GRANT USAGE ON SCHEMA public TO class_student")
+    db.execute("REVOKE CREATE ON SCHEMA public FROM class_student")        # students only read
     db.execute(f"REVOKE ALL ON {TABLE} FROM PUBLIC")
     db.execute(f"GRANT SELECT ON {TABLE} TO class_student")
-    print(f"Student login class_student: may read {TABLE} and create its own tables. Give students "
-          "PG_CONNECTION=host=<address> port=5432 dbname=labs user=class_student password=<PG_STUDENT_PASSWORD> connect_timeout=10")
+    print(f"Student login class_student: may read {TABLE}, nothing more. Give students "
+          "PG_CONNECTION=host=<address> port=5432 dbname=labs user=class_student password=<PG_STUDENT_PASSWORD> sslmode=require")
 
 
 if __name__ == "__main__":

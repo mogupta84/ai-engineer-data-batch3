@@ -11,8 +11,6 @@ scale_set.py                   makes the benchmark vectors, questions and answer
 trainer_build_scale.py         TRAINER ONLY, before class: loads the benchmark vectors into both stores (add --1536 for the second set)
 trainer_build_shared_index.py  TRAINER ONLY, before class: builds the shared index freshcart-chunks that Days 3 and 4 read
 
-Optional, from VS Code on a laptop (timings there are mostly network):
-l2_read_compare.py  l2_chunks.py  l2_benchmark.py  l2_scale.py
 ```
 
 The 7 FreshCart files are in `data/raw/`. The notebooks fetch the lab code in `src/` from this repository.
