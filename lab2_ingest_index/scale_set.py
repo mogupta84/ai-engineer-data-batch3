@@ -19,14 +19,20 @@ class BenchSet:
     truth: np.ndarray        # exact top 10 per question: the answer key
 
 
-def make_benchmark_set(k=10):
+# The two sets the course uses: the earlier labs' 100,000 x 128, and 20,000 x 1,536, the size of a real
+# text-embedding-3-small vector. Each has its own index and table name.
+SETS = {"128": {"n": 100_000, "dim": 128, "index": "freshcart-scale-100k", "table": "scale_100k"},
+        "1536": {"n": 20_000, "dim": 1536, "index": "freshcart-scale-1536", "table": "scale_1536"}}
+
+
+def make_benchmark_set(k=10, n=N, dim=DIM):
     rng = np.random.default_rng(SEED)
-    centres = rng.normal(size=(N_GROUPS, DIM)).astype("float32")
-    X = centres[rng.integers(0, N_GROUPS, N)] + 0.35 * rng.normal(size=(N, DIM)).astype("float32")
+    centres = rng.normal(size=(N_GROUPS, dim)).astype("float32")
+    X = centres[rng.integers(0, N_GROUPS, n)] + 0.35 * rng.normal(size=(n, dim)).astype("float32")
     X /= np.linalg.norm(X, axis=1, keepdims=True)
-    Q = X[rng.choice(N, N_QUESTIONS, replace=False)] + 0.05 * rng.normal(size=(N_QUESTIONS, DIM)).astype("float32")
+    Q = X[rng.choice(n, N_QUESTIONS, replace=False)] + 0.05 * rng.normal(size=(N_QUESTIONS, dim)).astype("float32")
     Q /= np.linalg.norm(Q, axis=1, keepdims=True)
-    labels = rng.integers(0, N_LABELS, N)
+    labels = rng.integers(0, N_LABELS, n)
     X, Q = X.astype("float32"), Q.astype("float32")
     truth = np.argsort(-(Q @ X.T), axis=1)[:, :k]
     return BenchSet(X=X, Q=Q, labels=labels, truth=truth)

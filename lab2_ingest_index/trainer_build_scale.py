@@ -1,10 +1,11 @@
-"""Day 2, TRAINER ONLY, before class: load the 100,000-vector scale set into both stores, once, for the whole class.
+"""Day 2, TRAINER ONLY, before class: load the benchmark vectors into both stores, once, for the whole class.
 
     python lab2_ingest_index/trainer_build_scale.py --search      Azure AI Search index freshcart-scale-100k
-    python lab2_ingest_index/trainer_build_scale.py --postgres    pgvector table scale_100k on the class container
+    python lab2_ingest_index/trainer_build_scale.py --postgres    pgvector table scale_100k on the class PostgreSQL server
+    add --1536 to either for the 20,000 x 1,536 set (index freshcart-scale-1536, table scale_1536)
 
 --search needs SEARCH_ENDPOINT and SEARCH_ADMIN_KEY in .env (run it once per class search service). --postgres needs
-PG_CONNECTION as the trainer (the container's admin login) and PG_STUDENT_PASSWORD, a new password for the students' login. Students only read both, with l2_scale.py, so nobody loads 100,000 rows into a shared server in class.
+PG_CONNECTION as the trainer (the container's admin login) and PG_STUDENT_PASSWORD, a new password for the students' login. Students only read both, from notebook 2 (or l2_scale.py), so nobody loads 100,000 rows into a shared server in class.
 No model calls: the vectors are made on this laptop, so the only cost is the running container.
 """
 import pathlib
@@ -16,9 +17,10 @@ import numpy as np
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from azure_common import setting
-from scale_set import DIM, make_benchmark_set
+from scale_set import SETS, make_benchmark_set
 
-INDEX, TABLE = "freshcart-scale-100k", "scale_100k"
+SIZE = "1536" if "--1536" in sys.argv else "128"        # which set: 100,000 x 128 (default) or 20,000 x 1,536
+INDEX, TABLE, DIM = SETS[SIZE]["index"], SETS[SIZE]["table"], SETS[SIZE]["dim"]
 
 
 def build_search(bench):
@@ -47,15 +49,16 @@ def build_search(bench):
             profiles=[VectorSearchProfile(name="hnsw", algorithm_configuration_name="hnsw-config")])))
     client = SearchClient(setting("SEARCH_ENDPOINT"), INDEX, key)
     start = time.time()
-    for i in range(0, len(bench.X), 1000):
+    step = 1000 if DIM <= 128 else 100                  # keep each upload under the 16 MB request limit
+    for i in range(0, len(bench.X), step):
         batch = [{"id": str(j), "label": int(bench.labels[j]), "vector": bench.X[j].tolist()}
-                 for j in range(i, min(i + 1000, len(bench.X)))]
+                 for j in range(i, min(i + step, len(bench.X)))]
         failed = [r for r in client.upload_documents(batch) if not r.succeeded]
         if failed:
             sys.exit(f"{len(failed)} rows failed at row {i}; first: {failed[0].error_message}")
         if i % 20_000 == 0:
             print(f"  {i:,} rows sent, {time.time() - start:.0f} s")
-    print(f"{INDEX}: 100,000 rows sent in {time.time() - start:.0f} s. The count in the portal catches up in a minute.")
+    print(f"{INDEX}: {len(bench.X):,} rows sent in {time.time() - start:.0f} s. The count in the portal catches up in a minute.")
 
 
 def build_postgres(bench):
@@ -74,7 +77,7 @@ def build_postgres(bench):
         copy.set_types(["integer", "integer", "vector"])
         for j in range(len(bench.X)):
             copy.write_row([j, int(bench.labels[j]), bench.X[j]])
-    print(f"{TABLE}: 100,000 rows copied in {time.time() - start:.0f} s")
+    print(f"{TABLE}: {len(bench.X):,} rows copied in {time.time() - start:.0f} s")
     start = time.time()
     db.execute("SET maintenance_work_mem = '1GB'")                      # build the graph in memory, not on disk
     db.execute("SET max_parallel_maintenance_workers = 0")              # a container's shared memory is too small for parallel builds
@@ -91,14 +94,14 @@ def build_postgres(bench):
     db.execute("GRANT USAGE, CREATE ON SCHEMA public TO class_student")
     db.execute(f"REVOKE ALL ON {TABLE} FROM PUBLIC")
     db.execute(f"GRANT SELECT ON {TABLE} TO class_student")
-    print("Student login class_student: may read scale_100k and create its own tables. Give students "
+    print(f"Student login class_student: may read {TABLE} and create its own tables. Give students "
           "PG_CONNECTION=host=<address> port=5432 dbname=labs user=class_student password=<PG_STUDENT_PASSWORD> connect_timeout=10")
 
 
 if __name__ == "__main__":
     if not {"--search", "--postgres"} & set(sys.argv):
         sys.exit(__doc__)
-    bench = make_benchmark_set()
+    bench = make_benchmark_set(n=SETS[SIZE]["n"], dim=DIM)
     if "--search" in sys.argv:
         build_search(bench)
     if "--postgres" in sys.argv:

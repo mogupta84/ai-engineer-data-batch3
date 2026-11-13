@@ -43,7 +43,7 @@ def connect_postgres(bench):
     import psycopg
     from pgvector.psycopg import register_vector
     try:
-        db = psycopg.connect(setting("PG_CONNECTION"), autocommit=True)
+        db = psycopg.connect(setting("PG_CONNECTION"), autocommit=True, prepare_threshold=None)   # no saved plans
     except psycopg.OperationalError as e:
         print(f"Cannot sign in to the class PostgreSQL server: {str(e).splitlines()[0][:110]}")
         print("Check PG_CONNECTION in .env. If it says timeout, your network may block port 5432: watch the trainer's run.")
