@@ -1,10 +1,41 @@
 Day 3 lab: texts to copy. Copy one block at a time, from the line after its heading to the line before the next.
 
-==== P1. The question for Search explorer ====
-the food arrived cold, can the customer get money back
+==== P1a. Keyword only: replace everything in the JSON box with this ====
+{
+  "search": "who pays when food is spilled in transit",
+  "select": "blob_url",
+  "top": 5
+}
 
-==== P2. The filter line (put your own container name in place of aeduser1-docs) ====
-"filter": "blob_url ne 'https://freshcartteamdocs19158.blob.core.windows.net/aeduser1-docs/refund_policy_v2_2022.pdf'",
+==== P1b. Meaning only ====
+{
+  "vectorQueries": [{"kind": "text", "fields": "snippet_vector",
+                     "text": "who pays when food is spilled in transit"}],
+  "select": "blob_url",
+  "top": 5
+}
+
+==== P1c. Hybrid: both ====
+{
+  "search": "who pays when food is spilled in transit",
+  "vectorQueries": [{"kind": "text", "fields": "snippet_vector",
+                     "text": "who pays when food is spilled in transit"}],
+  "select": "blob_url",
+  "top": 5
+}
+
+==== P1d. Hybrid plus the reranker ====
+{
+  "search": "who pays when food is spilled in transit",
+  "vectorQueries": [{"kind": "text", "fields": "snippet_vector",
+                     "text": "who pays when food is spilled in transit"}],
+  "queryType": "semantic",
+  "select": "blob_url",
+  "top": 5
+}
+
+==== P2. The filter pattern: paste the address of YOUR 2022 policy (copied from your P1c results) between the single quotes ====
+"filter": "blob_url ne 'PASTE-THE-ADDRESS-HERE'",
 
 ==== P3. The agent's instructions ====
 You answer FreshCart support staff from FreshCart's internal documents only. Always name the file you used. If the documents do not answer the question, say so; never guess.

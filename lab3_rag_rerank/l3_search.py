@@ -1,4 +1,6 @@
 """Day 3, code part 1: six ways to search the same index, each scored on the 20 judged questions with nDCG@10.
+You write three parts of it: GAP 1 (hybrid search), GAP 2 (switch on the reranker), GAP 3 (current documents only).
+Stuck? l3_search_solution.py is the same file with the gaps filled.
 
     python lab3_rag_rerank/l3_search.py              stages 1 to 3: meaning, keyword, both together (hybrid)
     python lab3_rag_rerank/l3_search.py --rerank     also 4 to 6: the reranker, current documents only, then 50 candidates
@@ -21,6 +23,27 @@ from azure_common import golden, grade, mean, models, ndcg_at_10, question_vecto
 FIELDS = ["id", "file", "content", "current"]
 
 
+# ===================================================== YOUR CODE: three gaps =====================================
+def gap1_hybrid(client, q, vector_query):
+    """GAP 1. Hybrid search: send the words AND the meaning in ONE search, so the service merges the two lists by rank.
+    Look at stages 1 and 2 below: stage 1 sends only vector_queries=vector_query, stage 2 only search_text=q.
+    Write one client.search(...) call with both, plus top=10 and select=FIELDS, and return it."""
+    return None
+
+
+def gap2_reranker():
+    """GAP 2. The settings that switch on the semantic reranker, as a dict of search options.
+    Two options: query_type (it must be "semantic") and semantic_configuration_name (this index's is called "rerank")."""
+    return {}
+
+
+def gap3_current_only():
+    """GAP 3. A filter that keeps only documents in force. Each piece has a field current, true or false.
+    Write it in the filter language of Azure AI Search, for example: "version eq '3.0'". Return the text."""
+    return None
+# ==================================================================================================================
+
+
 def stages(client):
     """Each stage is one way to ask the same index. v is the question as numbers, q is its words."""
     from azure.search.documents.models import VectorizedQuery
@@ -28,17 +51,38 @@ def stages(client):
     out = {
         "1 meaning": lambda q, v: client.search(search_text=None, vector_queries=meaning(v), top=10, select=FIELDS),
         "2 keyword (BM25)": lambda q, v: client.search(search_text=q, top=10, select=FIELDS),
-        "3 hybrid": lambda q, v: client.search(search_text=q, vector_queries=meaning(v), top=10, select=FIELDS),
     }
-    if "--rerank" in sys.argv:
-        rerank = {"query_type": "semantic", "semantic_configuration_name": "rerank"}
-        out["4 hybrid + reranker"] = lambda q, v: client.search(search_text=q, vector_queries=meaning(v), top=10,
-                                                                select=FIELDS, **rerank)
-        out["5 + current only"] = lambda q, v: client.search(search_text=q, vector_queries=meaning(v), top=10,
-                                                             select=FIELDS, filter="current eq true", **rerank)
-        # The fix to try: give the reranker more to choose from. Meaning search hands over 50 candidates, not 10.
-        out["6 = 5, 50 candidates"] = lambda q, v: client.search(search_text=q, vector_queries=meaning(v, 50), top=10,
-                                                                 select=FIELDS, filter="current eq true", **rerank)
+    probe = gap1_hybrid(client, "refund", meaning([0.01] * 1536))
+    if probe is None:
+        print("Stage 3 skipped: GAP 1 returned nothing. Fill it, and return the search: return client.search(...)")
+        return out
+    if isinstance(probe, (str, dict)) or not hasattr(probe, "__iter__"):
+        print("Stage 3 skipped: GAP 1 must return the result of client.search(...), not text or a dict.")
+        return out
+    out["3 hybrid"] = lambda q, v: gap1_hybrid(client, q, meaning(v))
+    if "--rerank" not in sys.argv:
+        return out
+    rerank, current = gap2_reranker(), gap3_current_only()
+    rerank = rerank if isinstance(rerank, dict) else {}
+    if rerank.get("query_type") != "semantic" or not rerank.get("semantic_configuration_name"):
+        print("Stages 4 to 6 skipped: fill GAP 2 (the reranker) at the top of this file.")
+        return out
+    out["4 hybrid + reranker"] = lambda q, v: client.search(search_text=q, vector_queries=meaning(v), top=10,
+                                                            select=FIELDS, **rerank)
+    if not current:
+        print("Stages 5 and 6 skipped: fill GAP 3 (current documents only) at the top of this file.")
+        return out
+    try:                                   # a plain search, no reranker: checks the filter before any quota is spent
+        list(client.search(search_text="*", filter=current, top=1, select=["id"]))
+    except Exception:
+        print(f"Stages 5 and 6 skipped: Azure did not accept the GAP 3 filter {current!r}. "
+              "Write it as field, eq, value, all lower case: true, not True; eq, not ==.")
+        return out
+    out["5 + current only"] = lambda q, v: client.search(search_text=q, vector_queries=meaning(v), top=10,
+                                                         select=FIELDS, filter=current, **rerank)
+    # The fix to try: give the reranker more to choose from. Meaning search hands over 50 candidates, not 10.
+    out["6 = 5, 50 candidates"] = lambda q, v: client.search(search_text=q, vector_queries=meaning(v, 50), top=10,
+                                                             select=FIELDS, filter=current, **rerank)
     return out
 
 
@@ -52,8 +96,14 @@ def main():
     scores, tops = {}, {}
     for name, ask in stages(client).items():
         start, per_question = time.time(), {}
-        for q, v in zip(questions, vectors):
-            ranked = list(ask(q["query"], v))
+        try:
+            first = list(ask(questions[0]["query"], vectors[0]))
+        except Exception as e:
+            print(f"{name:22} stopped: Azure refused this search ({type(e).__name__}). If this is stage 4, check GAP 2: "
+                  "query_type \"semantic\" and semantic_configuration_name \"rerank\". Later stages skipped.")
+            break
+        for n, (q, v) in enumerate(zip(questions, vectors)):
+            ranked = first if n == 0 else list(ask(q["query"], v))
             per_question[q["id"]] = ndcg_at_10(q["rules"], ranked, every_piece)
             tops[name, q["id"]] = ranked[:3]
             if show == q["id"]:
@@ -72,8 +122,10 @@ def main():
         by_id = {q["id"]: q for q in questions}
         for i in worse:
             q = by_id[i]
-            print(f"\n{i} {q['query']!r}: nDCG {a[i]:.2f} to {b[i]:.2f}, then {scores['5 + current only'][i]:.2f} "
-                  f"with the filter and {scores['6 = 5, 50 candidates'][i]:.2f} with 50 candidates")
+            later = "".join(f", {scores[n][i]:.2f} {label}" for n, label in
+                            (("5 + current only", "with the filter"), ("6 = 5, 50 candidates", "with 50 candidates"))
+                            if n in scores)
+            print(f"\n{i} {q['query']!r}: nDCG {a[i]:.2f} to {b[i]:.2f}{later}")
             for name in ("3 hybrid", "4 hybrid + reranker"):
                 print(f"   {name}: " + ", ".join(f"{p['file'].split('_')[0]}... grade {grade(q['rules'], p)}"
                                                 for p in tops[name, i]))

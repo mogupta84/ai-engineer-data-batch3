@@ -5,8 +5,9 @@ explorer and Foundry, on your Day 2 index and knowledge base.
 
 ```
 Day3_rag_hybrid_rerank.pdf  the handbook
-paste_texts.txt             the question, the filter line and the agent instructions to paste in P1 to P3
-l3_search.py                five stages of search, each scored with nDCG@10 on 20 judged questions
+paste_texts.txt             the JSON blocks P1a to P1d, the filter pattern and the agent texts for P1 to P3
+l3_search.py                six stages of search scored with nDCG@10 on 20 judged questions: you fill 3 gaps
+l3_search_solution.py       the same file with the gaps filled, if you are stuck
 l3_rag.py                   one question through the RAG pipeline, with the pieces it read
 rag.py                      the pipeline itself: search, rerank, gate, answer, check citations (Day 4 uses it too)
 ```
