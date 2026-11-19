@@ -1,8 +1,10 @@
 """Day 4, code part 2: score the RAG pipeline on 25 judged questions, then with Foundry's evaluators.
 
     python lab4_rag_api/l4_score.py                    20 answerable and 5 unanswerable questions, scored by rules
-    python lab4_rag_api/l4_score.py --fake             add a made-up citation to every third answer: is it caught?
+    python lab4_rag_api/l4_score.py --fake             add a made-up citation to every third answer: does YOUR check
+                                                       (l4_checks.py) catch it?
     python lab4_rag_api/l4_score.py --prompt v2        the stricter prompt (see PROMPT_V2 below)
+    python lab4_rag_api/l4_score.py --prompt mine      your own prompt, from my_prompt.txt
     python lab4_rag_api/l4_score.py --evaluate         also Groundedness, Relevance and a right-answer judge (gpt-4.1-mini)
     python lab4_rag_api/l4_score.py --evaluate --upload  the same, and the run appears in Foundry, Evaluations
 
@@ -49,9 +51,33 @@ def option(name, default=None):
     return default if value is None or value.startswith("--") else value
 
 
+def my_prompt():
+    """Your prompt from my_prompt.txt; lines starting with # are notes to you and are not sent to the model."""
+    path = pathlib.Path(__file__).with_name("my_prompt.txt")
+    text = "\n".join(line for line in path.read_text(encoding="utf-8-sig").splitlines() if not line.startswith("#")).strip()
+    if text == PROMPT.strip():
+        sys.exit("my_prompt.txt is still prompt v1. Change one thing in it first, then run this again.")
+    if REFUSAL not in text:
+        sys.exit(f"my_prompt.txt must keep the refusal sentence word for word: {REFUSAL}\n"
+                 "The code recognises a refusal by that exact sentence.")
+    return text
+
+
 def run(client, prompt):
     qa = golden("qa_golden.json")
     rows, fakes, caught = [], 0, 0
+    try:                                               # your citation check, from GAPS 1 to 3 in l4_checks.py
+        import l4_checks
+        mine = l4_checks.written()
+    except Exception as e:                             # a bug in a gap must not stop the scoring run
+        mine = False
+        if "--fake" in sys.argv:
+            print(f"Your l4_checks.py raised an error ({type(e).__name__}: {e}); only the service's check runs. "
+                  "Run python lab4_rag_api/l4_checks.py to find it.\n")
+    mine_caught = agree = compared = 0
+    if "--fake" in sys.argv and not mine:
+        print("l4_checks.py is not filled in yet, so only the service's own check runs. "
+              "Fill its gaps and run python lab4_rag_api/l4_checks.py first.\n")
     for n, q in enumerate(qa["answerable"] + qa["unanswerable"]):
         answerable = "expect_any" in q
         r = answer(client, q["question"], prompt=prompt)
@@ -61,7 +87,23 @@ def run(client, prompt):
             faked = verify({**r, "answer": r["answer"] + " [deadbeef0000]"})
             fakes += 1
             caught += "deadbeef0000" in faked["unknown_citations"]
-            print(f"{q['id']} made-up source added: {'CAUGHT, ' + faked['refusal_reason'] if faked['refused'] else 'NOT CAUGHT'}")
+            line = f"{q['id']} made-up source added: service {'CAUGHT' if faked['refused'] else 'NOT CAUGHT'}"
+            if mine:
+                try:
+                    _, unknown, reason = l4_checks.check(faked["answer"], [p["id"] for p in r["retrieved"]])
+                except Exception as e:
+                    unknown, reason = [], f"error {type(e).__name__}"
+                hit = "deadbeef0000" in (unknown or []) and reason is not None
+                mine_caught += hit
+                line += f", your check {'CAUGHT: ' + str(reason) if hit else 'NOT CAUGHT'}"
+            print(line)
+        if mine and r["refusal_reason"] != "no sufficiently relevant piece":     # the score gate is not part of your check
+            try:
+                _, _, reason = l4_checks.check(r["answer"], [p["id"] for p in r["retrieved"]])
+            except Exception as e:
+                reason = f"error {type(e).__name__}"
+            compared += 1
+            agree += (reason is None) == (not r["refused"])
         verdict = ("RIGHT" if right else "refused" if r["refused"] else "WRONG") if answerable else \
                   ("refused, as it should" if r["refused"] else "ANSWERED")
         print(f"{q['id']} {verdict:22} {r['refusal_reason'] or ''}")
@@ -71,7 +113,10 @@ def run(client, prompt):
     print(f"\nRight facts: {sum(r['right'] for r in a)} of {len(a)}. Refused though answerable: "
           f"{sum(r['refused'] for r in a)} of {len(a)}. Refused, as it should: {sum(r['refused'] for r in u)} of {len(u)}.")
     if fakes:
-        print(f"Made-up citations added: {fakes}, caught by the code check: {caught}")
+        print(f"Made-up citations added: {fakes}, caught by the service's check: {caught}"
+              + (f", by yours: {mine_caught}" if mine else ""))
+    if mine and compared:
+        print(f"Your check on the real answers: same verdict as the service's check on {agree} of {compared}.")
     return rows
 
 
@@ -144,9 +189,12 @@ def evaluate(rows, name):
 
 
 if __name__ == "__main__":
-    v2 = option("--prompt") == "v2"
-    rows = run(models(), PROMPT_V2 if v2 else PROMPT)
+    which = option("--prompt") or "v1"
+    if which not in ("v1", "v2", "mine"):
+        sys.exit("--prompt takes v1, v2 or mine")
+    prompt = {"v1": PROMPT, "v2": PROMPT_V2}.get(which) or my_prompt()
+    rows = run(models(), prompt)
     OUT.mkdir(exist_ok=True)
-    (OUT / f"day4_answers_{'v2' if v2 else 'v1'}.json").write_text(json.dumps(rows, indent=1), encoding="utf-8")
+    (OUT / f"day4_answers_{which}.json").write_text(json.dumps(rows, indent=1), encoding="utf-8")
     if "--evaluate" in sys.argv:
-        evaluate(rows, f"day4-{'v2' if v2 else 'v1'}")
+        evaluate(rows, f"day4-{which}")

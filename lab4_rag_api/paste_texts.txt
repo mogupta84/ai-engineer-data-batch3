@@ -1,0 +1,7 @@
+Day 4 lab: texts to copy. Try to write your own first; look here only if you are stuck.
+
+==== P3. The trainer's scope sentence for the agent's instructions ====
+FreshCart's documents cover food delivery orders in India. If a question is about another country or another kind of order, say the documents do not cover it.
+
+==== Code part 1. The question to send to POST /ask three times (min_score 0, then 1.5, then 3) ====
+What was FreshCart's total revenue in 2023?
