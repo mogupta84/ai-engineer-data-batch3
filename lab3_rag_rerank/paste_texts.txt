@@ -34,7 +34,17 @@ Day 3 lab: texts to copy. Copy one block at a time, from the line after its head
   "top": 5
 }
 
-==== P2. The filter pattern: paste the address of YOUR 2022 policy (copied from your P1c results) between the single quotes ====
+==== P2a. A question the two refund policies answer differently: replace everything in the JSON box with this ====
+{
+  "search": "how many refund claims can a customer make in thirty days",
+  "vectorQueries": [{"kind": "text", "fields": "snippet_vector",
+                     "text": "how many refund claims can a customer make in thirty days"}],
+  "queryType": "semantic",
+  "select": "blob_url",
+  "top": 5
+}
+
+==== P2b. The filter pattern: add this line just after the first { of block P2a, with the address of YOUR 2022 policy (copied from your P2a results) between the single quotes ====
 "filter": "blob_url ne 'PASTE-THE-ADDRESS-HERE'",
 
 ==== P3. The agent's instructions ====
