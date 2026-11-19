@@ -1,4 +1,4 @@
-"""Day 3, code part 1: six ways to search the same index, each scored on the 20 judged questions with nDCG@10.
+"""Day 3, code part 1: six ways to search the same index, each scored on the 20 judged questions with nDCG@10 and recall@10.
 You write three parts of it: GAP 1 (hybrid search), GAP 2 (switch on the reranker), GAP 3 (current documents only).
 Stuck? l3_search_solution.py is the same file with the gaps filled.
 
@@ -7,7 +7,8 @@ Stuck? l3_search_solution.py is the same file with the gaps filled.
     python lab3_rag_rerank/l3_search.py --show R01   the top 3 pieces of one question in every stage
 
 In the portal you saw one question at a time. Here every stage answers the same 20 questions, and nDCG@10 (from 0
-to 1; 1 means the best pieces came first) shows the lift each stage adds. The index is the trainer's shared
+to 1; 1 means the best pieces came first) shows the lift each stage adds;
+recall@10 is the share of the useful pieces that made the top 10 at all. The index is the trainer's shared
 freshcart-chunks: 500-character pieces, each labelled current or not.
 
 The semantic reranker is free for 1,000 searches a month per search service, shared by the whole class.
@@ -18,7 +19,7 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-from azure_common import golden, grade, mean, models, ndcg_at_10, question_vectors, search_client
+from azure_common import golden, grade, mean, models, ndcg_at_10, question_vectors, recall_at_10, search_client
 
 FIELDS = ["id", "file", "content", "current"]
 
@@ -95,7 +96,7 @@ def main():
     show = sys.argv[i + 1].upper() if 0 <= i < len(sys.argv) - 1 else None
     scores, tops = {}, {}
     for name, ask in stages(client).items():
-        start, per_question = time.time(), {}
+        start, per_question, recalls = time.time(), {}, []
         try:
             first = list(ask(questions[0]["query"], vectors[0]))
         except Exception as e:
@@ -105,6 +106,7 @@ def main():
         for n, (q, v) in enumerate(zip(questions, vectors)):
             ranked = first if n == 0 else list(ask(q["query"], v))
             per_question[q["id"]] = ndcg_at_10(q["rules"], ranked, every_piece)
+            recalls.append(recall_at_10(q["rules"], ranked, every_piece))
             tops[name, q["id"]] = ranked[:3]
             if show == q["id"]:
                 print(f"\n{name}, {q['id']} {q['query']!r}")
@@ -112,7 +114,7 @@ def main():
                     score = p.get("@search.reranker_score") or p["@search.score"]
                     print(f"   {score:7.3f}  {p['file']:36} current={p['current']!s:5} {p['content'][:60]!r}")
         scores[name] = per_question
-        print(f"{name:22} nDCG@10 {mean(per_question.values()):.3f}   "
+        print(f"{name:22} nDCG@10 {mean(per_question.values()):.3f}   recall@10 {mean(recalls):.3f}   "
               f"{(time.time() - start) / len(questions) * 1000:4.0f} ms a question")
     if "4 hybrid + reranker" in scores:
         a, b = scores["3 hybrid"], scores["4 hybrid + reranker"]
