@@ -1,4 +1,4 @@
-"""Day 4, code part 2: score the RAG pipeline on 25 judged questions, then with Foundry's evaluators.
+"""Day 4, code steps 2 and 3: score the RAG pipeline on 25 judged questions (optional: Foundry's evaluators).
 
     python lab4_rag_api/l4_score.py                    20 answerable and 5 unanswerable questions, scored by rules
     python lab4_rag_api/l4_score.py --fake             add a made-up citation to every third answer: does YOUR check
@@ -66,7 +66,7 @@ def my_prompt():
 def run(client, prompt):
     qa = golden("qa_golden.json")
     rows, fakes, caught = [], 0, 0
-    try:                                               # your citation check, from GAPS 1 to 3 in l4_checks.py
+    try:                                               # your citation check, from l4_checks.py
         import l4_checks
         mine = l4_checks.written()
     except Exception as e:                             # a bug in a gap must not stop the scoring run
@@ -77,7 +77,7 @@ def run(client, prompt):
     mine_caught = agree = compared = 0
     if "--fake" in sys.argv and not mine:
         print("l4_checks.py is not filled in yet, so only the service's own check runs. "
-              "Fill its gaps and run python lab4_rag_api/l4_checks.py first.\n")
+              "Write its one line and run python lab4_rag_api/l4_checks.py first.\n")
     for n, q in enumerate(qa["answerable"] + qa["unanswerable"]):
         answerable = "expect_any" in q
         r = answer(client, q["question"], prompt=prompt)
@@ -91,9 +91,9 @@ def run(client, prompt):
             if mine:
                 try:
                     _, unknown, reason = l4_checks.check(faked["answer"], [p["id"] for p in r["retrieved"]])
+                    hit = "deadbeef0000" in list(unknown or []) and reason is not None
                 except Exception as e:
-                    unknown, reason = [], f"error {type(e).__name__}"
-                hit = "deadbeef0000" in (unknown or []) and reason is not None
+                    unknown, reason, hit = [], f"error {type(e).__name__}", False
                 mine_caught += hit
                 line += f", your check {'CAUGHT: ' + str(reason) if hit else 'NOT CAUGHT'}"
             print(line)

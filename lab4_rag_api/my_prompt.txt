@@ -1,4 +1,4 @@
-# Your prompt for: python lab4_rag_api/l4_score.py --prompt mine --evaluate
+# Optional extra. Your prompt for: python lab4_rag_api/l4_score.py --prompt mine
 # Lines that start with # are notes to you; they are not sent to the model.
 # Below is prompt v1. Change ONE thing that you think will make the answers better, for example a rule about
 # what the documents cover, or how to answer when two pieces disagree. Keep the last sentence word for word:

@@ -21,7 +21,7 @@ from rag import REFUSAL, answer, verify
 MY_CHECK = "--my-check" in sys.argv
 if MY_CHECK:
     try:
-        import l4_checks                                   # your GAPS 1 to 3; run python lab4_rag_api/l4_checks.py first
+        import l4_checks                                   # your check; run python lab4_rag_api/l4_checks.py first
         ready = l4_checks.written()
     except Exception as e:
         sys.exit(f"--my-check: your l4_checks.py raised {type(e).__name__}: {e}. Run python lab4_rag_api/l4_checks.py.")
