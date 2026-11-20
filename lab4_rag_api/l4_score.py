@@ -1,17 +1,38 @@
-"""Day 4, code steps 2 and 3: score the RAG pipeline on 25 judged questions (optional: Foundry's evaluators).
+"""Day 4, optional extra: score the RAG pipeline on 25 judged questions, the same questions every run.
 
-    python lab4_rag_api/l4_score.py                    20 answerable and 5 unanswerable questions, scored by rules
-    python lab4_rag_api/l4_score.py --fake             add a made-up citation to every third answer: does YOUR check
-                                                       (l4_checks.py) catch it?
-    python lab4_rag_api/l4_score.py --prompt v2        the stricter prompt (see PROMPT_V2 below)
+WHAT IT DOES
+    Asks the pipeline in lab3_rag_rerank/rag.py all 25 questions in data/golden/qa_golden.json: 20 that FreshCart's
+    documents answer (A01 to A20) and 5 they do not (U01 to U05, U01 is Singapore). For each it prints one line:
+        RIGHT                  answerable, and the answer states the expected fact (for example "three")
+        WRONG                  answerable, answered, but the expected fact is missing
+        refused                answerable, but the pipeline refused (a lost answer)
+        refused, as it should  not answerable, and the pipeline refused (the right behaviour)
+        ANSWERED               not answerable, but the pipeline answered anyway (a hallucination)
+    Then a summary: right facts out of 20, refused though answerable, and refused-as-it-should out of 5.
+
+HOW TO RUN IT (from the repository folder)
+    python lab4_rag_api/l4_score.py                    prompt v1, the prompt in rag.py
+    python lab4_rag_api/l4_score.py --prompt v2        prompt v2: v1 plus one scope rule (PROMPT_V2 below)
     python lab4_rag_api/l4_score.py --prompt mine      your own prompt, from my_prompt.txt
-    python lab4_rag_api/l4_score.py --evaluate         also Groundedness, Relevance and a right-answer judge (gpt-4.1-mini)
-    python lab4_rag_api/l4_score.py --evaluate --upload  the same, and the run appears in Foundry, Evaluations
+    python lab4_rag_api/l4_score.py --fake             also plant a made-up id in up to 7 answerable answers and
+                                                       count how many the citation check catches (yours too, if
+                                                       l4_checks.py is filled in)
+    python lab4_rag_api/l4_score.py --evaluate         also Foundry's Groundedness and Relevance evaluators and a
+                                                       right-answer judge, all with gpt-4.1-mini (about 70 calls)
+    python lab4_rag_api/l4_score.py --evaluate --upload  the same, and the run appears in Foundry (Azure AI Foundry,
+                                                       ai.azure.com, where evaluation runs are stored), Evaluations
+    Compare runs by their summary lines: change one thing, keep the same 25 questions.
+    On Windows you can also write the path with backslashes: python lab4_rag_api\\l4_score.py
 
-Rules check facts you can name ("three"). Evaluators judge what rules cannot: is every sentence supported by the
-pieces (groundedness), does it answer the question (relevance). Both scored 1 to 5.
-Cost: about 25 short answers, plus about 70 judge calls with --evaluate: well under $0.10.
-The judge is gpt-4.1-mini, the same model that writes the answers: a model grading its own work.
+HOW IT SCORES
+    Rules check facts you can name ("three", "24 hours") with has_fact. Evaluators judge what rules cannot:
+    groundedness (is every sentence supported by the pieces?) and relevance (does it answer the question?), each
+    1 to 5. The right-answer judge compares each answer with the answer key; it is the one that catches Singapore.
+    The judge is gpt-4.1-mini, the same model that writes the answers: a model grading its own kind of work.
+
+COST
+    About 25 short answers per run, plus about 70 judge calls with --evaluate: well under $0.10. Each run also uses
+    25 reranked searches from the class's shared free allowance, so run it once, not in a loop.
 """
 import contextlib     # hide the evaluators' progress lines
 import io
@@ -27,6 +48,8 @@ sys.path.insert(0, str(ROOT / "lab3_rag_rerank"))
 from azure_common import OUT, chat, golden, models, setting, sign_in
 from rag import PROMPT, REFUSAL, answer, verify
 
+# Prompt v2 = prompt v1 plus one rule about scope. It is the fix for U01: the pieces talk about refunds, so v1 answers
+# Singapore with India's rules; this rule tells the model to check the country and kind of order first.
 PROMPT_V2 = PROMPT + """
 Before answering, check that the pieces cover the exact place, product and time the question asks about. FreshCart's
 policies cover food delivery orders in India: if the question is about another country or another kind of order,
@@ -34,8 +57,10 @@ reply exactly with the sentence above, even when the pieces discuss refunds in g
 
 
 def has_fact(text, expected):
-    """Whether the answer states one of the expected facts, as a whole word or phrase. Citation ids are removed
-    first: an id such as [3f37a93f2727] must not count as the number 3."""
+    """True when the answer states one of the expected facts, as a whole word or phrase.
+
+    expected is a list of acceptable forms, for example ["three", "3"]. Citation ids are removed first, so an id
+    such as [3f37a93f2727] does not count as the number 3."""
     text = re.sub(r"\[[^\]]*\]", " ", text).lower()
     text = text.replace(chr(8211), "-").replace(chr(8212), "-")      # a range written with a long dash counts as 5-7
     def found(e):                     # short words and numbers match whole; a long stem such as "escalat" may go on
@@ -45,7 +70,7 @@ def has_fact(text, expected):
 
 
 def option(name, default=None):
-    """The value after --name, or default when it is missing."""
+    """The value written after --name on the command line, for example "v2" in --prompt v2, or default."""
     i = sys.argv.index(name) if name in sys.argv else -1
     value = sys.argv[i + 1] if 0 <= i < len(sys.argv) - 1 else None
     return default if value is None or value.startswith("--") else value
@@ -64,6 +89,11 @@ def my_prompt():
 
 
 def run(client, prompt):
+    """Ask all 25 questions with this prompt, print one line each and a summary, and return every result.
+
+    With --fake it also plants [deadbeef0000] in every third answerable question the pipeline did not refuse (up to
+    7) and counts how many the citation check catches. If l4_checks.py is filled in, the student's check is run on the same answers and
+    compared with the service's check."""
     qa = golden("qa_golden.json")
     rows, fakes, caught = [], 0, 0
     try:                                               # your citation check, from l4_checks.py
@@ -80,7 +110,7 @@ def run(client, prompt):
               "Write its one line and run python lab4_rag_api/l4_checks.py first.\n")
     for n, q in enumerate(qa["answerable"] + qa["unanswerable"]):
         answerable = "expect_any" in q
-        r = answer(client, q["question"], prompt=prompt)
+        r = answer(client, q["question"], prompt=prompt)         # the whole pipeline, from rag.py
         right = answerable and not r["refused"] and has_fact(r["answer"], q["expect_any"])
         if "--fake" in sys.argv and answerable and n % 3 == 0 and not r["refused"]:
             # A copy with a made-up source added: the score above and the saved answer stay as the model wrote them.
@@ -104,6 +134,7 @@ def run(client, prompt):
                 reason = f"error {type(e).__name__}"
             compared += 1
             agree += (reason is None) == (not r["refused"])
+        # One word per question, explained at the top of this file.
         verdict = ("RIGHT" if right else "refused" if r["refused"] else "WRONG") if answerable else \
                   ("refused, as it should" if r["refused"] else "ANSWERED")
         print(f"{q['id']} {verdict:22} {r['refusal_reason'] or ''}")
@@ -142,7 +173,8 @@ class RightAnswer:
 
 
 def expected_for(row):
-    """What the answer key says a correct answer must do, in words the judge can check."""
+    """What the answer key says a correct answer must do, in words the judge model can check: for an answerable
+    question the right answer, for the others the instruction to say the documents do not answer it."""
     if row["answerable"]:
         return "give this answer from FreshCart's documents, in any words: " + row["expected"]
     return ("say that FreshCart's documents do not answer this question. Giving a policy, a number or advice that "
@@ -150,7 +182,9 @@ def expected_for(row):
 
 
 def evaluate(rows, name):
-    """Foundry's Groundedness and Relevance evaluators, and the right-answer judge, on every answer not refused."""
+    """--evaluate: Foundry's Groundedness and Relevance evaluators and the right-answer judge, on every answer that
+    was not refused. Runs on your laptop with gpt-4.1-mini as the judge; with --upload the run also appears in the
+    Foundry project. Prints the averages and every answer the judge failed."""
     from azure.ai.evaluation import AzureOpenAIModelConfiguration, GroundednessEvaluator, RelevanceEvaluator, evaluate
     data = OUT / f"{name}.jsonl"
     with data.open("w", encoding="utf-8") as f:
@@ -189,6 +223,7 @@ def evaluate(rows, name):
 
 
 if __name__ == "__main__":
+    # Pick the prompt, run the 25 questions, save every answer to out/day4_answers_<prompt>.json, then score.
     which = option("--prompt") or "v1"
     if which not in ("v1", "v2", "mine"):
         sys.exit("--prompt takes v1, v2 or mine")
