@@ -1,4 +1,4 @@
-Day 4 lab: texts to copy. Copy the P1 blocks as they are. For P3 and the code part, try your own first; look here only if you are stuck.
+Day 4 lab: texts to copy. Copy the P1 and Code part blocks as they are. For P3, try your own sentence first; look here only if you are stuck.
 
 ==== P1. The one-line instructions for the wrong-on-purpose agent (with gpt-4.1-mini; Save) ====
 You answer FreshCart support staff.
@@ -8,6 +8,15 @@ What is FreshCart's refund policy for grocery orders in Singapore?
 
 ==== P3. The trainer's scope sentence: add it after the one line, keep gpt-4.1-mini, Save ====
 FreshCart's documents cover food delivery orders in India. If a question is about another country or another kind of order, say the documents do not cover it.
+
+==== Code part A. Replace the whole Request body with this ====
+{"question": "What is FreshCart's refund policy for grocery orders in Singapore?", "min_score": 1.5, "add_fake_source": false}
+
+==== Code part B. Replace the whole Request body with this ====
+{"question": "How many refund claims can a customer make in thirty days?", "min_score": 1.5, "add_fake_source": true}
+
+==== Code part C. Replace the whole Request body with this ====
+{"question": "What was FreshCart's total revenue in 2023?", "min_score": 1.5, "add_fake_source": false}
 
 ==== Optional extra. The question to send to POST /ask three times (min_score 0, then 1.5, then 3) ====
 What was FreshCart's total revenue in 2023?

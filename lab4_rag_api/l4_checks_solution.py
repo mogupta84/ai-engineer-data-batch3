@@ -1,4 +1,4 @@
-"""Day 4, code part, THE SOLUTION: l4_checks.py with its one line written. Try it yourself first.
+"""Day 4, optional extra, THE SOLUTION: l4_checks.py with its one line written. Try it yourself first.
 The citation check. You write ONE line of it. No Azure, no cost: it runs on your laptop in a second.
 
     python lab4_rag_api/l4_checks_solution.py   runs 9 test answers through the check and says PASS or FAIL
