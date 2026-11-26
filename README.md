@@ -15,8 +15,8 @@ over many runs, scoring search quality, running an API), the lab moves to a shor
 | 2 | 2 | Read 7 files in 5 formats with Document Intelligence, index them in your own Azure AI Search index from Foundry, count what went in; compare loaders and ways to cut, and benchmark Azure AI Search against pgvector | [`lab2_ingest_index`](lab2_ingest_index), [Day2_read_index_benchmark.pdf](lab2_ingest_index/Day2_read_index_benchmark.pdf) |
 | 3 | 3 | Hybrid search, the semantic reranker and a metadata filter in Search explorer, a RAG agent in Foundry; score five stages of search with nDCG@10 and read a RAG pipeline end to end | [`lab3_rag_rerank`](lab3_rag_rerank), [Day3_rag_hybrid_rerank.pdf](lab3_rag_rerank/Day3_rag_hybrid_rerank.pdf) |
 | 4 | 4 | Evaluate your agent in Foundry, change it and compare runs; ship the RAG pipeline as an API whose citations are checked in code, and measure a fix | [`lab4_rag_api`](lab4_rag_api), [Day4_rag_api_and_evaluation.pdf](lab4_rag_api/Day4_rag_api_and_evaluation.pdf) |
-| 5 | 5 | Turn your own Python function into a tool an agent can call, first as an OpenAPI tool, then as an MCP server | [`lab5_foundry`](lab5_foundry), [Foundry_grounding_and_MCP_demo.pdf](lab5_foundry/Foundry_grounding_and_MCP_demo.pdf) |
-| 6 | 6 | Ask questions in English, let a model write the SQL, and make its numbers ones you can defend with business rules and a semantic layer | [`lab6_foundry`](lab6_foundry), [Foundry_Lab6_numbers_you_can_defend.pdf](lab6_foundry/Foundry_Lab6_numbers_you_can_defend.pdf) |
+| 5 | 5 | Turn your own Python function into a tool an agent can call, first as an OpenAPI tool, then as an MCP server | [`lab5_agent_tools`](lab5_agent_tools), [Foundry_grounding_and_MCP_demo.pdf](lab5_agent_tools/Foundry_grounding_and_MCP_demo.pdf) |
+| 6 | 6 | Ask questions in English, let a model write the SQL, and make its numbers ones you can defend with business rules and a semantic layer | [`lab6_nl2sql_semantic`](lab6_nl2sql_semantic), [Foundry_Lab6_numbers_you_can_defend.pdf](lab6_nl2sql_semantic/Foundry_Lab6_numbers_you_can_defend.pdf) |
 | 7 | 7 | Build a first enterprise agent in the Foundry portal, with tools, a plan and memory, plus a look at skills | [`lab7_foundry`](lab7_foundry), [Foundry_Lab7_first_enterprise_agent.pdf](lab7_foundry/Foundry_Lab7_first_enterprise_agent.pdf) |
 | 8 | 8 | Build a support agent in code with Microsoft Agent Framework, add tracing, memory, a tool and a skill, then a router, and score it after each step | [`lab8_foundry`](lab8_foundry), [Foundry_Lab8_agent_in_code.pdf](lab8_foundry/Foundry_Lab8_agent_in_code.pdf) |
 | 9 | 9 | Build a ticket pipeline in Microsoft Fabric: copy only new rows, park bad ones with a reason, label each ticket with a model, and ask the tables questions with a data agent | [`lab9_fabric`](lab9_fabric), [Fabric_Lab9_pipeline.pdf](lab9_fabric/Fabric_Lab9_pipeline.pdf) |
@@ -42,7 +42,7 @@ lab1_foundry_prompts/  Day 1: models, temperature, grounding, prompts; tokens an
 lab2_ingest_index/     Day 2: Document Intelligence, Foundry knowledge, your index; loaders, cutting, pgvector benchmark
 lab3_rag_rerank/       Day 3: hybrid search, reranker, filters, a RAG agent; nDCG@10 per stage, the RAG pipeline
 lab4_rag_api/          Day 4: Foundry evaluation of your agent; the RAG API and its scoring
-lab5_foundry/ to lab11_governance/   Days 5 to 11, each with its handbook
+lab5_agent_tools/ to lab11_governance/   Days 5 to 11, each with its handbook
 presentations/         the slides as PDF: Days 1 and 2, Days 3 and 4
 azure_common.py        the settings, sign-in, model calls and scoring shared by the Day 1 to 4 code
 data/raw/              the 7 FreshCart documents

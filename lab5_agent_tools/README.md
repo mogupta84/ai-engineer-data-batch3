@@ -13,7 +13,7 @@ look_inside_db.py reads freshcart.db on your computer (python3 on a Mac, py on W
 .vscode/          settings for the VS Code Azure Functions extension, used to deploy
 ```
 
-Lab 6 is separate, with its own Function App, in ../lab6_foundry.
+Lab 6 is separate, with its own Function App, in ../lab6_nl2sql_semantic.
 
 Batch 3: create your Function App in the resource group AIEngineerITC and name it after your account,
 for example freshcart-tools-aeduser1. Name your agents the same way, for example AedUser1FirstAgent.

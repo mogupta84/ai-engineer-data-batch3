@@ -1,4 +1,4 @@
-"""Look inside freshcart.db, the data file get_metric reads. Run it from the lab5_foundry folder:
+"""Look inside freshcart.db, the data file get_metric reads. Run it from the lab5_agent_tools folder:
 
     python3 look_inside_db.py      (on a Mac)
     py look_inside_db.py           (on Windows)
