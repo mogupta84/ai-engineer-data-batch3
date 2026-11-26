@@ -43,7 +43,7 @@ lab2_ingest_index/     Day 2: Document Intelligence, Foundry knowledge, your ind
 lab3_rag_rerank/       Day 3: hybrid search, reranker, filters, a RAG agent; nDCG@10 per stage, the RAG pipeline
 lab4_rag_api/          Day 4: Foundry evaluation of your agent; the RAG API and its scoring
 lab5_agent_tools/ to lab11_governance/   Days 5 to 11, each with its handbook
-presentations/         the slides as PDF: Days 1 and 2, Days 3 and 4
+presentations/         the slides as PDF: Days 1 and 2, Days 3 and 4, Days 5 and 6
 azure_common.py        the settings, sign-in, model calls and scoring shared by the Day 1 to 4 code
 data/raw/              the 7 FreshCart documents
 data/golden/           the judged questions for Days 2 to 4
