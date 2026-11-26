@@ -10,4 +10,4 @@ notebooks/lab10_3_health.ipynb     Part C: five health checks on your Lab 9 pipe
 notebooks/lab10_4_drift.ipynb      Part D: embedding drift and one MLflow run per day to chart
 
 Optional, the same in code (the handbook appendix): lab10_1_gate.py, gate.json and lab10_2_traces.py are not in these
-files; your trainer can share them. They run in your lab8_foundry folder from Lab 8, with Lab 8's environment and sign-in.
+files; your trainer can share them. They run in your lab8_agent_in_code folder from Lab 8, with Lab 8's environment and sign-in.

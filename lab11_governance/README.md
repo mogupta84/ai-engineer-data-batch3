@@ -12,7 +12,7 @@ code/                        the optional Lab 11 scripts: put a .env with FOUNDR
                              python -m pip install -r requirements.txt, and sign in as in Lab 8 (az login or VS Code)
 ```
 
-The same optional code is also in the lab8_foundry folder (lab11_1_pii.py, lab11_2_who_sees_what.py), where it uses
+The same optional code is also in the lab8_agent_in_code folder (lab11_1_pii.py, lab11_2_who_sees_what.py), where it uses
 Lab 8's environment, sign-in and .env file. The trainer's index script, code/lab11_0_build_index.py, needs
 SEARCH_ADMIN_KEY and the out/read folder that lab2_ingest_index/trainer_build_shared_index.py writes on Day 2,
-so the trainer runs it from lab8_foundry.
+so the trainer runs it from lab8_agent_in_code.
