@@ -9,6 +9,7 @@ freshcart.db      the FreshCart warehouse for Parts 3 and 4, one SQLite file; th
 requirements.txt  the one package Azure installs
 host.json         loads the preview add-on that the MCP tool needs
 openapi.json      the get_metric tool description to paste into Foundry; replace YOUR-APP-ADDRESS first
+look_inside_db.py reads freshcart.db on your computer (python3 on a Mac, py on Windows); not deployed
 .vscode/          settings for the VS Code Azure Functions extension, used to deploy
 ```
 
